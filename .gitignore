@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+.next
+backend/uploads/avatars/*
+backend/uploads/publications/*
+backend/uploads/additional/*
+backend/uploads/documents/*
+backend/uploads/other/*
