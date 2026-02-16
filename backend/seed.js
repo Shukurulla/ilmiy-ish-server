@@ -22,7 +22,12 @@ const seed = async () => {
       Publication.deleteMany({}),
       ScientificField.deleteMany({}),
     ]);
-    console.log("Eski ma'lumotlar tozalandi");
+    // Drop old indexes to avoid conflicts
+    await Promise.all([
+      Publication.collection.dropIndexes().catch(() => {}),
+      ScientificField.collection.dropIndexes().catch(() => {}),
+    ]);
+    console.log("Eski ma'lumotlar va indexlar tozalandi");
 
     // ═══════════════════════════════════════════
     // 2. IMPORT SCIENTIFIC FIELDS (344 ta mutaxassislik)

@@ -144,13 +144,16 @@ const publicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-publicationSchema.index({
-  'title.uz': 'text',
-  'title.ru': 'text',
-  'title.en': 'text',
-  annotation: 'text',
-  keywords: 'text',
-});
+publicationSchema.index(
+  {
+    'title.uz': 'text',
+    'title.ru': 'text',
+    'title.en': 'text',
+    annotation: 'text',
+    keywords: 'text',
+  },
+  { language_override: 'searchLanguage' }
+);
 
 publicationSchema.index({ author: 1 });
 publicationSchema.index({ status: 1 });
