@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLangStore } from "@/lib/store";
@@ -164,6 +164,7 @@ export default function TurdimambetovProfilePage() {
         <Card>
           <CardContent className="pt-6 text-center">
             <Avatar className="h-32 w-32 mx-auto mb-4">
+              <AvatarImage src="/turdimambetov.png" alt="Турдимамбетов Изимбет Рахметович" />
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">ТИ</AvatarFallback>
             </Avatar>
             <h1 className="text-xl font-bold mb-2">{data.fullName[lang]}</h1>

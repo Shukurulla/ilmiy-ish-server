@@ -130,7 +130,8 @@ exports.getPublications = async (req, res, next) => {
     }
 
     if (specialty) {
-      query['specialty.code'] = specialty;
+      query.$or = query.$or || [];
+      query.$or.push({ 'specialty.code': specialty }, { 'specialties.code': specialty });
     }
 
     if (author) {

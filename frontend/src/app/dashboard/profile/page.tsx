@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore, useLangStore } from "@/lib/store";
-import { t } from "@/lib/i18n";
+import { t, getLocalizedField } from "@/lib/i18n";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
@@ -25,12 +25,16 @@ export default function ProfileEditPage() {
   const { lang } = useLangStore();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [scientificFields, setScientificFields] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");
     if (user) {
       api.get("/auth/me").then((res) => setProfile(res.data.user)).catch(() => {});
     }
+    api.get("/scientific-fields").then((res) => {
+      setScientificFields(res.data.fields || []);
+    }).catch(() => {});
   }, [user, authLoading, router]);
 
   const handleSave = async () => {
@@ -187,7 +191,22 @@ export default function ProfileEditPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>{t("profile.scientific_field", lang)}</Label><Input value={profile.scientificField || ""} onChange={(e) => updateField("scientificField", e.target.value)} /></div>
+                <div>
+                  <Label>{t("profile.scientific_field", lang)}</Label>
+                  <Select
+                    value={profile.scientificFieldRef?._id || profile.scientificFieldRef || ""}
+                    onValueChange={(v) => updateField("scientificFieldRef", v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder={t("profile.select_field", lang)} /></SelectTrigger>
+                    <SelectContent>
+                      {scientificFields.map((f: any) => (
+                        <SelectItem key={f._id} value={f._id}>
+                          {f.code ? `${f.code} — ` : ""}{getLocalizedField(f.name, lang)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div><Label>{t("profile.research_direction", lang)}</Label><Input value={profile.researchDirection || ""} onChange={(e) => updateField("researchDirection", e.target.value)} /></div>
                 <div><Label>{t("profile.candidate_defense_year", lang)}</Label><Input type="number" value={profile.candidateDefenseYear || ""} onChange={(e) => updateField("candidateDefenseYear", parseInt(e.target.value) || null)} /></div>
                 <div><Label>{t("profile.doctoral_defense_year", lang)}</Label><Input type="number" value={profile.doctoralDefenseYear || ""} onChange={(e) => updateField("doctoralDefenseYear", parseInt(e.target.value) || null)} /></div>

@@ -55,6 +55,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/publications', require('./routes/publications'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/universities', require('./routes/universities'));
+app.use('/api/scientific-fields', require('./routes/scientificFields'));
 
 // Health check
 app.get('/api/health', (req, res) => {

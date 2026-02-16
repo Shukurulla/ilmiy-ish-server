@@ -71,6 +71,8 @@ const userSchema = new mongoose.Schema(
       default: 'none',
     },
     scientificField: String,
+    scientificFieldRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ScientificField' },
+    scientificFields: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ScientificField' }],
     academicTitle: {
       type: String,
       enum: ['none', 'docent', 'professor'],
@@ -156,10 +158,9 @@ userSchema.index({
   researchDirection: 'text',
 });
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {

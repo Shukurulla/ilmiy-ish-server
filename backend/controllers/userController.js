@@ -3,7 +3,7 @@ const User = require('../models/User');
 // Get user profile
 exports.getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).populate('university');
+    const user = await User.findById(req.params.id).populate('university').populate('scientificFieldRef').populate('scientificFields');
     if (!user) {
       return res.status(404).json({ message: 'Foydalanuvchi topilmadi' });
     }
@@ -21,6 +21,7 @@ exports.updateProfile = async (req, res, next) => {
       'currentPosition', 'faculty', 'department', 'phone', 'university',
       'academicDegree', 'scientificField', 'academicTitle', 'defenseSpecialty',
       'candidateDefenseYear', 'doctoralDefenseYear', 'researchDirection',
+      'scientificFieldRef', 'scientificFields',
       'candidateDissertation', 'doctoralDissertation',
       'orcid', 'scopusAuthorId', 'hIndexScopus', 'webOfScienceId',
       'hIndexWos', 'googleScholarId', 'hIndexGoogleScholar',
@@ -41,7 +42,7 @@ exports.updateProfile = async (req, res, next) => {
       req.user._id,
       { $set: updates, profileCompleted: true },
       { new: true, runValidators: true }
-    ).populate('university');
+    ).populate('university').populate('scientificFieldRef').populate('scientificFields');
 
     res.json({ success: true, user });
   } catch (error) {
@@ -102,6 +103,7 @@ exports.getResearchers = async (req, res, next) => {
     const [users, total] = await Promise.all([
       User.find(query)
         .populate('university', 'name')
+        .populate('scientificFieldRef').populate('scientificFields', 'name code')
         .select('-password -__v')
         .skip(skip)
         .limit(parseInt(limit))
@@ -130,7 +132,7 @@ exports.getAllUsers = async (req, res, next) => {
     const { page = 1, limit = 20, role, search } = req.query;
     const query = {};
 
-    if (role) query.role = role;
+    if (role && role !== 'all') query.role = role;
     if (search) query.$text = { $search: search };
 
     // If admin (not superadmin), only see users from same university
@@ -143,6 +145,7 @@ exports.getAllUsers = async (req, res, next) => {
     const [users, total] = await Promise.all([
       User.find(query)
         .populate('university', 'name')
+        .populate('scientificFieldRef').populate('scientificFields', 'name code')
         .select('-password -__v')
         .skip(skip)
         .limit(parseInt(limit))

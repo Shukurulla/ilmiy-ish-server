@@ -1,3 +1,5 @@
+import { flexibleMatch } from "./transliterate";
+
 // Static publications data for Turdimambetov Izimbet Rakhmetovich
 
 export const staticAuthor = {
@@ -451,14 +453,14 @@ export function searchStaticPublications(params: {
   let filtered = [...staticPublications];
 
   if (params.search) {
-    const q = params.search.toLowerCase();
+    const q = params.search.trim();
     filtered = filtered.filter(
       (p) =>
-        p.title.uz.toLowerCase().includes(q) ||
-        p.title.ru.toLowerCase().includes(q) ||
-        p.title.en.toLowerCase().includes(q) ||
-        p.annotation.toLowerCase().includes(q) ||
-        p.keywords.some((k) => k.toLowerCase().includes(q))
+        flexibleMatch(p.title.uz, q) ||
+        flexibleMatch(p.title.ru, q) ||
+        flexibleMatch(p.title.en, q) ||
+        flexibleMatch(p.annotation, q) ||
+        p.keywords.some((k) => flexibleMatch(k, q))
     );
   }
 

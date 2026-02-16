@@ -13,6 +13,7 @@ import { useAuthStore, useLangStore } from "@/lib/store";
 import { t, getLocalizedField } from "@/lib/i18n";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import SpecialtySelector from "@/components/SpecialtySelector";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function RegisterPage() {
     firstName: { uz: "", ru: "", en: "" },
     lastName: { uz: "", ru: "", en: "" },
     university: "",
+    scientificFields: [] as string[],
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +59,7 @@ export default function RegisterPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         university: formData.university || undefined,
+        scientificFields: formData.scientificFields.length > 0 ? formData.scientificFields : undefined,
       });
       toast.success(t("common.success", lang));
       router.push("/dashboard/profile");
@@ -128,6 +131,15 @@ export default function RegisterPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("auth.scientific_field", lang)}</Label>
+              <SpecialtySelector
+                value={formData.scientificFields}
+                onChange={(v) => setFormData({ ...formData, scientificFields: v })}
+                multiple
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -34,6 +34,12 @@ const publicationSchema = new mongoose.Schema(
       code: String,
       name: String,
     },
+    specialties: [
+      {
+        code: String,
+        fieldRef: { type: mongoose.Schema.Types.ObjectId, ref: 'ScientificField' },
+      },
+    ],
     publicationYear: { type: Number, required: true },
     language: {
       type: String,

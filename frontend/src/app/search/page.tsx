@@ -25,6 +25,7 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
 } from "react-icons/ri";
+import api from "@/lib/api";
 
 const typeColors: Record<string, string> = {
   dissertation: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
@@ -32,23 +33,13 @@ const typeColors: Record<string, string> = {
   monograph: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   textbook: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   conference_thesis: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  manual: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+  abstract: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
   other: "bg-muted text-muted-foreground",
 };
 
-interface Publication {
-  _id: string;
-  title: { uz: string; ru: string; en: string };
-  author: string;
-  type: string;
-  year: number;
-  annotation: { uz: string; ru: string; en: string };
-  language?: string;
-  journalType?: string;
-  quartile?: string;
-}
-
 interface SearchResponse {
-  publications: Publication[];
+  publications: any[];
   total: number;
   page: number;
   totalPages: number;
@@ -60,7 +51,9 @@ function SearchPageContent() {
   const { lang } = useLangStore();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    searchParams.get("type") ? [searchParams.get("type")!] : []
+  );
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [language, setLanguage] = useState("");
@@ -76,22 +69,28 @@ function SearchPageContent() {
 
   const publicationTypes = [
     "dissertation",
+    "abstract",
     "article",
     "monograph",
     "textbook",
+    "manual",
     "conference_thesis",
     "other",
   ];
 
-  const languages = ["uz", "ru", "en"];
+  const languages = [
+    { value: "uzbek", label: "O'zbekcha" },
+    { value: "russian", label: "Русский" },
+    { value: "english", label: "English" },
+  ];
   const journalTypes = ["scopus", "web_of_science", "other"];
   const quartiles = ["Q1", "Q2", "Q3", "Q4"];
 
   useEffect(() => {
     const qParam = searchParams.get("q");
-    if (qParam) {
-      setSearchQuery(qParam);
-    }
+    const typeParam = searchParams.get("type");
+    if (qParam) setSearchQuery(qParam);
+    if (typeParam) setSelectedTypes([typeParam]);
   }, [searchParams]);
 
   useEffect(() => {
@@ -101,22 +100,44 @@ function SearchPageContent() {
   const performSearch = async () => {
     setLoading(true);
     try {
-      const result = searchStaticPublications({
-        search: searchQuery || undefined,
-        type: selectedTypes.length > 0 ? selectedTypes.join(",") : undefined,
-        yearFrom: yearFrom || undefined,
-        yearTo: yearTo || undefined,
-        language: language || undefined,
-        journalType: journalType || undefined,
-        quartile: quartile || undefined,
-        sort: sortBy,
-        page: currentPage,
-        limit,
+      const params = new URLSearchParams();
+      if (searchQuery) params.set("search", searchQuery);
+      if (selectedTypes.length > 0) params.set("type", selectedTypes.join(","));
+      if (yearFrom) params.set("yearFrom", yearFrom);
+      if (yearTo) params.set("yearTo", yearTo);
+      if (language && language !== "all") params.set("language", language);
+      if (journalType && journalType !== "all") params.set("journalType", journalType);
+      if (quartile && quartile !== "all") params.set("quartile", quartile);
+      params.set("sort", sortBy);
+      params.set("page", String(currentPage));
+      params.set("limit", String(limit));
+
+      const res = await api.get(`/publications/search?${params.toString()}`);
+      setResults({
+        publications: res.data.publications || [],
+        total: res.data.pagination?.total || 0,
+        page: res.data.pagination?.page || 1,
+        totalPages: res.data.pagination?.pages || 0,
       });
-      setResults(result as any);
-    } catch (error) {
-      console.error("Search error:", error);
-      setResults({ publications: [], total: 0, page: 1, totalPages: 0 });
+    } catch {
+      // Fallback to static data
+      try {
+        const result = searchStaticPublications({
+          search: searchQuery || undefined,
+          type: selectedTypes.length > 0 ? selectedTypes.join(",") : undefined,
+          yearFrom: yearFrom || undefined,
+          yearTo: yearTo || undefined,
+          language: language || undefined,
+          journalType: journalType || undefined,
+          quartile: quartile || undefined,
+          sort: sortBy,
+          page: currentPage,
+          limit,
+        });
+        setResults(result as any);
+      } catch {
+        setResults({ publications: [], total: 0, page: 1, totalPages: 0 });
+      }
     } finally {
       setLoading(false);
     }
@@ -137,6 +158,13 @@ function SearchPageContent() {
     setJournalType("");
     setQuartile("");
     setCurrentPage(1);
+  };
+
+  const getPublicationLink = (pub: any) => {
+    if (pub._id && pub._id.startsWith("static-")) {
+      return `/publications/static/${pub._id}`;
+    }
+    return `/publications/${pub._id}`;
   };
 
   const FiltersContent = () => (
@@ -178,10 +206,7 @@ function SearchPageContent() {
             type="number"
             placeholder={t("search.from", lang)}
             value={yearFrom}
-            onChange={(e) => {
-              setYearFrom(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => { setYearFrom(e.target.value); setCurrentPage(1); }}
             min="1900"
             max={new Date().getFullYear()}
           />
@@ -189,10 +214,7 @@ function SearchPageContent() {
             type="number"
             placeholder={t("search.to", lang)}
             value={yearTo}
-            onChange={(e) => {
-              setYearTo(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => { setYearTo(e.target.value); setCurrentPage(1); }}
             min="1900"
             max={new Date().getFullYear()}
           />
@@ -201,22 +223,14 @@ function SearchPageContent() {
 
       <div>
         <h4 className="font-medium mb-2">{t("filter.language", lang)}</h4>
-        <Select
-          value={language}
-          onValueChange={(value) => {
-            setLanguage(value);
-            setCurrentPage(1);
-          }}
-        >
+        <Select value={language} onValueChange={(value) => { setLanguage(value); setCurrentPage(1); }}>
           <SelectTrigger>
             <SelectValue placeholder={t("search.select_language", lang)} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filter.all", lang)}</SelectItem>
             {languages.map((l) => (
-              <SelectItem key={l} value={l}>
-                {l === "uz" ? "O'zbekcha" : l === "ru" ? "Русский" : "English"}
-              </SelectItem>
+              <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -224,22 +238,14 @@ function SearchPageContent() {
 
       <div>
         <h4 className="font-medium mb-2">{t("filter.journal_type", lang)}</h4>
-        <Select
-          value={journalType}
-          onValueChange={(value) => {
-            setJournalType(value);
-            setCurrentPage(1);
-          }}
-        >
+        <Select value={journalType} onValueChange={(value) => { setJournalType(value); setCurrentPage(1); }}>
           <SelectTrigger>
             <SelectValue placeholder={t("search.select_journal_type", lang)} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filter.all", lang)}</SelectItem>
             {journalTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {t(`journal.${type}`, lang)}
-              </SelectItem>
+              <SelectItem key={type} value={type}>{t(`journal.${type}`, lang)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -247,22 +253,14 @@ function SearchPageContent() {
 
       <div>
         <h4 className="font-medium mb-2">{t("filter.quartile", lang)}</h4>
-        <Select
-          value={quartile}
-          onValueChange={(value) => {
-            setQuartile(value);
-            setCurrentPage(1);
-          }}
-        >
+        <Select value={quartile} onValueChange={(value) => { setQuartile(value); setCurrentPage(1); }}>
           <SelectTrigger>
             <SelectValue placeholder={t("search.select_quartile", lang)} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filter.all", lang)}</SelectItem>
             {quartiles.map((q) => (
-              <SelectItem key={q} value={q}>
-                {q}
-              </SelectItem>
+              <SelectItem key={q} value={q}>{q}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -273,12 +271,8 @@ function SearchPageContent() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        {/* Search Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">
-            {t("search.title", lang)}
-          </h1>
-
+          <h1 className="text-3xl font-bold mb-4">{t("search.title", lang)}</h1>
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <RiSearchLine className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-xl" />
@@ -286,15 +280,10 @@ function SearchPageContent() {
                 type="text"
                 placeholder={t("home.search_placeholder", lang)}
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="pl-10 pr-4 py-6 text-lg"
               />
             </div>
-
-            {/* Mobile Filter Button */}
             <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
               <SheetTrigger asChild className="lg:hidden">
                 <Button variant="outline" size="lg">
@@ -311,16 +300,13 @@ function SearchPageContent() {
         </div>
 
         <div className="flex gap-8">
-          {/* Desktop Sidebar Filters */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <Card className="p-6 sticky top-8">
               <FiltersContent />
             </Card>
           </aside>
 
-          {/* Main Content */}
           <main className="flex-1">
-            {/* Sort and Results Count */}
             <div className="flex justify-between items-center mb-6">
               <div className="text-muted-foreground">
                 {loading ? (
@@ -331,26 +317,18 @@ function SearchPageContent() {
                   </span>
                 )}
               </div>
-
-              <Select
-                value={sortBy}
-                onValueChange={(value) => {
-                  setSortBy(value);
-                  setCurrentPage(1);
-                }}
-              >
+              <Select value={sortBy} onValueChange={(value) => { setSortBy(value); setCurrentPage(1); }}>
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">{t("filter.newest", lang)}</SelectItem>
                   <SelectItem value="oldest">{t("filter.oldest", lang)}</SelectItem>
-                  <SelectItem value="name">{t("filter.by_name", lang)}</SelectItem>
+                  <SelectItem value="title">{t("filter.by_name", lang)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Results Grid */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -358,23 +336,27 @@ function SearchPageContent() {
                     <Skeleton className="h-6 w-3/4 mb-4" />
                     <Skeleton className="h-4 w-1/2 mb-4" />
                     <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-full mb-2" />
                     <Skeleton className="h-4 w-2/3" />
                   </Card>
                 ))}
               </div>
             ) : results && results.publications.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {results.publications.map((publication) => (
+                {results.publications.map((publication: any) => (
                   <Card
                     key={publication._id}
-                    className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => router.push(`/publications/static/${publication._id}`)}
+                    className="p-6 hover:shadow-lg transition-all cursor-pointer hover:-translate-y-0.5"
+                    onClick={() => router.push(getPublicationLink(publication))}
                   >
-                    <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-3">
                       <Badge className={typeColors[publication.type] || typeColors.other}>
                         {t(`type.${publication.type}`, lang)}
                       </Badge>
+                      {publication.articleDetails?.quartile && (
+                        <Badge variant="outline" className="text-xs">
+                          {publication.articleDetails.quartile}
+                        </Badge>
+                      )}
                     </div>
 
                     <h3 className="font-semibold text-lg mb-2 line-clamp-2">
@@ -382,20 +364,19 @@ function SearchPageContent() {
                     </h3>
 
                     <p className="text-sm text-muted-foreground mb-3">
-                      {typeof publication.author === "object"
-                        ? `${getLocalizedField((publication.author as any).lastName, lang)} ${getLocalizedField((publication.author as any).firstName, lang)}`
-                        : publication.author}{" "}
-                      • {(publication as any).publicationYear || (publication as any).year}
+                      {publication.author && typeof publication.author === "object"
+                        ? `${getLocalizedField(publication.author.lastName, lang)} ${getLocalizedField(publication.author.firstName, lang)}`
+                        : publication.author}
+                      {" "}
+                      {publication.publicationYear && `· ${publication.publicationYear}`}
                     </p>
 
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {getLocalizedField(publication.annotation, lang)}
-                    </p>
-
-                    {publication.quartile && (
-                      <div className="mt-4">
-                        <Badge variant="outline">{publication.quartile}</Badge>
-                      </div>
+                    {publication.annotation && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {typeof publication.annotation === "string"
+                          ? publication.annotation.substring(0, 200)
+                          : getLocalizedField(publication.annotation, lang)}
+                      </p>
                     )}
                   </Card>
                 ))}
@@ -403,16 +384,11 @@ function SearchPageContent() {
             ) : (
               <div className="text-center py-16">
                 <RiSearchLine className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-                <h3 className="text-xl font-semibold mb-2">
-                  {t("common.no_results", lang)}
-                </h3>
-                <p className="text-muted-foreground">
-                  {t("search.try_different", lang)}
-                </p>
+                <h3 className="text-xl font-semibold mb-2">{t("common.no_results", lang)}</h3>
+                <p className="text-muted-foreground">{t("search.try_different", lang)}</p>
               </div>
             )}
 
-            {/* Pagination */}
             {results && results.totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
                 <Button
@@ -423,26 +399,16 @@ function SearchPageContent() {
                 >
                   <RiArrowLeftLine />
                 </Button>
-
                 <div className="flex gap-2">
                   {Array.from({ length: results.totalPages }, (_, i) => i + 1)
                     .filter((page) => {
                       const distance = Math.abs(page - currentPage);
-                      return (
-                        page === 1 ||
-                        page === results.totalPages ||
-                        distance <= 1
-                      );
+                      return page === 1 || page === results.totalPages || distance <= 1;
                     })
                     .map((page, index, array) => {
                       if (index > 0 && array[index - 1] !== page - 1) {
                         return (
-                          <span
-                            key={`ellipsis-${page}`}
-                            className="px-3 py-2 text-muted-foreground"
-                          >
-                            ...
-                          </span>
+                          <span key={`ellipsis-${page}`} className="px-3 py-2 text-muted-foreground">...</span>
                         );
                       }
                       return (
@@ -457,7 +423,6 @@ function SearchPageContent() {
                       );
                     })}
                 </div>
-
                 <Button
                   variant="outline"
                   size="icon"

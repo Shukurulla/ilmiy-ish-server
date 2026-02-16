@@ -2,6 +2,8 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const University = require('./models/University');
+const ScientificField = require('./models/ScientificField');
+const specialties = require('../ilmiy-ishlar-codi');
 
 const seed = async () => {
   try {
@@ -11,6 +13,31 @@ const seed = async () => {
     // Clear existing data
     await University.deleteMany({});
     await User.deleteMany({});
+    await ScientificField.deleteMany({});
+
+    // Import all 386 scientific field specialties
+    const transformedFields = specialties.map((item) => ({
+      code: item.code,
+      branch: item.branch,
+      group: item.group || undefined,
+      name: {
+        uz: item.uz.label,
+        ru: item.ru.label,
+        en: item.en.label,
+      },
+      description: {
+        uz: item.uz.describe,
+        ru: item.ru.describe,
+        en: item.en.describe,
+      },
+    }));
+
+    await ScientificField.insertMany(transformedFields);
+    console.log(`${transformedFields.length} ta ilmiy soha (mutaxassislik) import qilindi`);
+
+    // Find specific fields for linking
+    const csField = await ScientificField.findOne({ code: '05.01.07' }); // Informatika
+    const geoField = await ScientificField.findOne({ code: '11.00.02' }); // Med geografiya
 
     // Create university
     const university = await University.create({
@@ -46,6 +73,13 @@ const seed = async () => {
                 en: 'Department of Physics',
               },
             },
+            {
+              name: {
+                uz: 'Informatika kafedrasi',
+                ru: 'Кафедра информатики',
+                en: 'Department of Computer Science',
+              },
+            },
           ],
         },
         {
@@ -67,6 +101,13 @@ const seed = async () => {
                 uz: 'Kimyo kafedrasi',
                 ru: 'Кафедра химии',
                 en: 'Department of Chemistry',
+              },
+            },
+            {
+              name: {
+                uz: 'Geografiya kafedrasi',
+                ru: 'Кафедра географии',
+                en: 'Department of Geography',
               },
             },
           ],
@@ -97,6 +138,10 @@ const seed = async () => {
     });
 
     // Create sample researcher
+    const researcherFields = [];
+    if (csField) researcherFields.push(csField._id);
+    if (geoField) researcherFields.push(geoField._id);
+
     await User.create({
       email: 'researcher@karsu.uz',
       password: 'researcher123',
@@ -105,8 +150,9 @@ const seed = async () => {
       lastName: { uz: 'Karimov', ru: 'Каримов', en: 'Karimov' },
       middleName: { uz: 'Baxtiyorovich', ru: 'Бахтиёрович', en: 'Bakhtiyorovich' },
       university: university._id,
-      academicDegree: 'PhD',
+      scientificFields: researcherFields,
       scientificField: 'Informatika',
+      academicDegree: 'PhD',
       academicTitle: 'docent',
       researchDirection: 'Sun\'iy intellekt va ma\'lumotlar tahlili',
       currentPosition: 'Dotsent',

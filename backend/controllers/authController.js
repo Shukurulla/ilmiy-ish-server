@@ -8,7 +8,7 @@ const generateToken = (id) => {
 // Register
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName, university } = req.body;
+    const { email, password, firstName, lastName, university, scientificFieldRef, scientificFields } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,6 +21,8 @@ exports.register = async (req, res, next) => {
       firstName: firstName || { uz: '', ru: '', en: '' },
       lastName: lastName || { uz: '', ru: '', en: '' },
       university,
+      scientificFieldRef: scientificFieldRef || undefined,
+      scientificFields: scientificFields || [],
     });
 
     const token = generateToken(user._id);
@@ -88,7 +90,7 @@ exports.login = async (req, res, next) => {
 // Get current user
 exports.getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).populate('university');
+    const user = await User.findById(req.user._id).populate('university').populate('scientificFieldRef').populate('scientificFields');
     res.json({ success: true, user });
   } catch (error) {
     next(error);

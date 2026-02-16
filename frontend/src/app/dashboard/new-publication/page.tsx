@@ -14,6 +14,7 @@ import { useAuthStore, useLangStore } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import SpecialtySelector from "@/components/SpecialtySelector";
 
 export default function NewPublicationPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function NewPublicationPage() {
   const [loading, setLoading] = useState(false);
   const [mainFile, setMainFile] = useState<File | null>(null);
   const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [specialties, setSpecialties] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     type: "article",
@@ -62,6 +64,7 @@ export default function NewPublicationPage() {
         publicationYear: formData.publicationYear,
         language: formData.language,
         coAuthors: formData.coAuthors ? formData.coAuthors.split(",").map((n) => ({ name: n.trim() })) : [],
+        specialties: specialties.map((id) => ({ fieldRef: id })),
       };
 
       if (formData.type === "article") {
@@ -203,6 +206,10 @@ export default function NewPublicationPage() {
             <div>
               <Label>{t("pub.coauthors", lang)} ({t("pub.keywords_hint", lang)})</Label>
               <Input value={formData.coAuthors} onChange={(e) => updateField("coAuthors", e.target.value)} />
+            </div>
+            <div>
+              <Label>{t("auth.scientific_field", lang)}</Label>
+              <SpecialtySelector value={specialties} onChange={setSpecialties} multiple={true} />
             </div>
           </CardContent>
         </Card>
