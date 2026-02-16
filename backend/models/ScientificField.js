@@ -32,7 +32,6 @@ const scientificFieldSchema = new mongoose.Schema(
 
 scientificFieldSchema.index({ 'branch.code': 1 });
 scientificFieldSchema.index({ 'group.code': 1 });
-scientificFieldSchema.index({ code: 1 });
 scientificFieldSchema.index({
   'name.uz': 'text',
   'name.ru': 'text',

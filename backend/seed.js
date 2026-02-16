@@ -29,17 +29,22 @@ const seed = async () => {
     // ═══════════════════════════════════════════
     const transformedFields = specialties.map((item) => ({
       code: item.code,
-      branch: item.branch,
+      branch: {
+        code: item.branch.code,
+        uz: item.branch.uz || item.branch.ru || item.branch.en || item.branch.code,
+        ru: item.branch.ru || item.branch.uz || item.branch.en || item.branch.code,
+        en: item.branch.en || item.branch.ru || item.branch.uz || item.branch.code,
+      },
       group: item.group && item.group.code ? item.group : undefined,
       name: {
-        uz: item.uz.label,
-        ru: item.ru.label,
-        en: item.en.label,
+        uz: item.uz.label || item.ru.label || item.en.label || item.code,
+        ru: item.ru.label || item.uz.label || item.en.label || item.code,
+        en: item.en.label || item.ru.label || item.uz.label || item.code,
       },
       description: {
-        uz: item.uz.describe,
-        ru: item.ru.describe,
-        en: item.en.describe,
+        uz: item.uz.describe || "",
+        ru: item.ru.describe || "",
+        en: item.en.describe || "",
       },
     }));
 
