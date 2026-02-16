@@ -2,7 +2,9 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://ilmiy-ish.portfolio-sport.uz/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,12 +23,15 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       Cookies.remove("token");
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.includes("/login")
+      ) {
         window.location.href = "/login";
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
